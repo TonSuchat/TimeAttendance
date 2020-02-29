@@ -53,5 +53,37 @@ namespace TimeAttendance.Controllers
             return Response(200, new ResponseData() { statusMessage = "LogOut success." });
         }
 
+        [ActionName("changepassword")]
+        [HttpPut]
+        public async Task<ResponseModel> ChangePassword([FromBody] ChangePassword request)
+        {
+            if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
+            if (await userService.ChangePassword(request.Id, request.NewPassword))
+                return Response(200, new ResponseData() { statusMessage = "Change password success." });
+            else return Response(400, null, INVALID_PARAMETER);
+        }
+
+        [ActionName("stamptime")]
+        [HttpPost]
+        public async Task<ResponseModel> StampTime([FromBody] StampTime request)
+        {
+            if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
+            await transactionService.AddTransaction(new Transaction()
+            {
+                UserId = request.Id,
+                Type = request.Status == 1 ? TransactionType.PUNCHIN : TransactionType.PUNCHOUT
+            });
+            return Response(200, new ResponseData() { statusMessage = "StampTime success." });
+        }
+
+        [ActionName("dashboard")]
+        [HttpGet]
+        public ResponseModel Dashboard([FromQuery] int id)
+        {
+            if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
+            var transactions = transactionService.GetDashboard(id);
+            return Response(200, new ResponseData() { data = transactions });
+        }
+
     }
 }

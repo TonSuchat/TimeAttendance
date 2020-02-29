@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TimeAttendance.Models;
 
@@ -25,6 +27,12 @@ namespace TimeAttendance.Services
             {
                 return false;
             }
+        }
+
+        public IEnumerable<Transaction> GetDashboard(int userId)
+        {
+            return db.Transactions.Where(t => t.UserId == userId &&
+                    (t.Type == TransactionType.PUNCHIN || t.Type == TransactionType.PUNCHOUT));
         }
     }
 }
