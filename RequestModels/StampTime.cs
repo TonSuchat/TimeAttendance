@@ -4,7 +4,10 @@ namespace TimeAttendance.RequestModels
     {
         public int Id { get; set; }
 
-        // 1 = punchin, 2 = punchout
+        /// <summary>
+        /// 1 = PunchIn, 2 = PunchOut
+        /// </summary>
+        /// <value></value>
         public int Status { get; set; }
     }
 }

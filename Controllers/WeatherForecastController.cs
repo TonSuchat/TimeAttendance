@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace TimeAttendance.Controllers
 {
+    [ApiExplorerSettings(IgnoreApi = true)]
     [ApiController]
     [Route("[controller]")]
     public class WeatherForecastController : ControllerBase

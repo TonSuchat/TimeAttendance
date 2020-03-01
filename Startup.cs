@@ -13,6 +13,7 @@ namespace TimeAttendance
 {
     public class Startup
     {
+        const string AllowAllOriginsPolicy = "AllowAllOriginsPolicy";
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -25,6 +26,15 @@ namespace TimeAttendance
         {
             var conectionString = Configuration.GetConnectionString("dbConnectionString");
             services.AddDbContext<TimeAttendanceContext>(options => options.UseMySQL(conectionString));
+            services.AddCors(options =>
+            {
+                options.AddPolicy(AllowAllOriginsPolicy,
+                    builder => builder
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                );
+            });
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -43,6 +53,8 @@ namespace TimeAttendance
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseCors(AllowAllOriginsPolicy);
 
             app.UseSwagger();
 
