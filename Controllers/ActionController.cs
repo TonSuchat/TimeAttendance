@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using TimeAttendance.Models;
 using TimeAttendance.RequestModels;
 using TimeAttendance.Services;
@@ -46,6 +45,7 @@ namespace TimeAttendance.Controllers
         public async Task<ResponseModel> LogOut([FromBody] LogOut request)
         {
             if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
+            if (request.Status == 2) return Response(400, null, "Error can't log out");
             var user = await userService.GetUserById(request.Id);
             if (user == null) return Response(400, null, "User not found.");
             // add transaction for signout type
@@ -58,6 +58,10 @@ namespace TimeAttendance.Controllers
         public async Task<ResponseModel> ChangePassword([FromBody] ChangePassword request)
         {
             if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
+            var user = await userService.GetUserById(request.Id);
+            if (user == null) return Response(400, null, "User not found.");
+            if (!HashUtility.PasswordIsValid(request.CurrentPassword, user))
+                return Response(400, null, "Current password is invalid.");
             if (await userService.ChangePassword(request.Id, request.NewPassword))
                 return Response(200, new ResponseData() { statusMessage = "Change password success." });
             else return Response(400, null, INVALID_PARAMETER);
@@ -68,12 +72,17 @@ namespace TimeAttendance.Controllers
         public async Task<ResponseModel> StampTime([FromBody] StampTime request)
         {
             if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
-            await transactionService.AddTransaction(new Transaction()
+            var transaction = new Transaction()
             {
                 UserId = request.Id,
                 Type = request.Status == 1 ? TransactionType.PUNCHIN : TransactionType.PUNCHOUT
+            };
+            await transactionService.AddTransaction(transaction);
+            return Response(200, new ResponseData()
+            {
+                data = new { StampTime = transaction.CreatedDate },
+                statusMessage = "StampTime success."
             });
-            return Response(200, new ResponseData() { statusMessage = "StampTime success." });
         }
 
         [ActionName("dashboard")]
@@ -82,7 +91,13 @@ namespace TimeAttendance.Controllers
         {
             if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
             var transactions = transactionService.GetDashboard(id);
-            return Response(200, new ResponseData() { data = transactions });
+            var resultTransactions = transactions.Select(t => new
+            {
+                t.Id,
+                StampTime = t.CreatedDate,
+                Type = t.Type == TransactionType.PUNCHIN ? "in" : "out"
+            }).ToList();
+            return Response(200, new ResponseData() { data = resultTransactions });
         }
 
     }
