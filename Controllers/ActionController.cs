@@ -67,6 +67,16 @@ namespace TimeAttendance.Controllers
             else return Response(400, null, INVALID_PARAMETER);
         }
 
+        [ActionName("employee")]
+        [HttpGet]
+        public async Task<ResponseModel> GetEmployee([FromQuery] int id)
+        {
+            if (id == 0) return Response(400, null, INVALID_PARAMETER);
+            var user = await userService.GetUserById(id);
+            if (user == null) return Response(400, null, "User not found.");
+            return Response(200, new ResponseData() { statusMessage = "Get employee information", data = user });
+        }
+
         [ActionName("stamptime")]
         [HttpPost]
         public async Task<ResponseModel> StampTime([FromBody] StampTime request)
@@ -90,14 +100,8 @@ namespace TimeAttendance.Controllers
         public ResponseModel Dashboard([FromQuery] int id)
         {
             if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
-            var transactions = transactionService.GetDashboard(id);
-            var resultTransactions = transactions.Select(t => new
-            {
-                t.Id,
-                StampTime = t.CreatedDate,
-                Type = t.Type == TransactionType.PUNCHIN ? "in" : "out"
-            }).ToList();
-            return Response(200, new ResponseData() { data = resultTransactions });
+            var dashboards = transactionService.GetDashboard(id);
+            return Response(200, new ResponseData() { data = dashboards });
         }
 
     }

@@ -29,10 +29,24 @@ namespace TimeAttendance.Services
             }
         }
 
-        public IEnumerable<Transaction> GetDashboard(int userId)
+        public IEnumerable<Dashboard> GetDashboard(int userId)
         {
-            return db.Transactions.Where(t => t.UserId == userId &&
-                    (t.Type == TransactionType.PUNCHIN || t.Type == TransactionType.PUNCHOUT));
+            var transactions = db.Transactions.Where(t => t.UserId == userId &&
+                    (t.Type == TransactionType.PUNCHIN || t.Type == TransactionType.PUNCHOUT))
+                    .OrderBy(t => t.CreatedDate).ToList();
+            if (transactions == null) return null;
+            var dashboards = transactions.GroupBy(t => t.CreatedDate.ToString("yyyy-MM-dd"))
+                       .Select(t => new Dashboard()
+                       {
+                           Id = userId,
+                           StampTime = t.Key,
+                           StampTimeIn = t.Where(x => x.Type == TransactionType.PUNCHIN)
+                                          .Min(x => x.CreatedDate).ToString("HH:mm") ?? "",
+                           StampTimeOut = t.Where(x => x.Type == TransactionType.PUNCHOUT)
+                                          .Max(x => x.CreatedDate).ToString("HH:mm") ?? ""
+                       }
+            );
+            return dashboards.ToList();
         }
     }
 }
