@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using TimeAttendance.Models;
 
 namespace TimeAttendance.Services
@@ -29,24 +30,45 @@ namespace TimeAttendance.Services
             }
         }
 
-        public IEnumerable<Dashboard> GetDashboard(int userId)
+        private IEnumerable<Dashboard> CreateDashboardByTransaction(IList<Transaction> transactions, int userId)
         {
-            var transactions = db.Transactions.Where(t => t.UserId == userId &&
+            var transactionGroup = transactions.GroupBy(t => t.CreatedDate.ToString("yyyy-MM-dd"));
+            var dashboard = new List<Dashboard>();
+            foreach (var item in transactionGroup)
+            {
+                var newDashboard = new Dashboard() { Id = userId, StampTime = item.Key };
+                if (item.Any(x => x.Type == TransactionType.PUNCHIN))
+                {
+                    newDashboard.StampTimeIn = item.Where(x => x.Type == TransactionType.PUNCHIN)
+                                               .Min(x => x.CreatedDate).ToString("HH:mm");
+                }
+                if (item.Any(x => x.Type == TransactionType.PUNCHOUT))
+                {
+                    newDashboard.StampTimeOut = item.Where(x => x.Type == TransactionType.PUNCHOUT)
+                                                .Max(x => x.CreatedDate).ToString("HH:mm");
+                }
+                dashboard.Add(newDashboard);
+            }
+            return dashboard;
+        }
+
+        public async Task<IEnumerable<Dashboard>> GetDashboards(int userId)
+        {
+            var transactions = await db.Transactions.Where(t => t.UserId == userId &&
                     (t.Type == TransactionType.PUNCHIN || t.Type == TransactionType.PUNCHOUT))
-                    .OrderBy(t => t.CreatedDate).ToList();
+                    .OrderBy(t => t.CreatedDate).ToListAsync();
             if (transactions == null) return null;
-            var dashboards = transactions.GroupBy(t => t.CreatedDate.ToString("yyyy-MM-dd"))
-                       .Select(t => new Dashboard()
-                       {
-                           Id = userId,
-                           StampTime = t.Key,
-                           StampTimeIn = t.Where(x => x.Type == TransactionType.PUNCHIN)
-                                          .Min(x => x.CreatedDate).ToString("HH:mm") ?? "",
-                           StampTimeOut = t.Where(x => x.Type == TransactionType.PUNCHOUT)
-                                          .Max(x => x.CreatedDate).ToString("HH:mm") ?? ""
-                       }
-            );
-            return dashboards.ToList();
+            return CreateDashboardByTransaction(transactions, userId);
+        }
+
+        public async Task<Dashboard> GetDashboard(int userId, DateTime dateTime)
+        {
+            var transactions = await db.Transactions.Where(t => t.UserId == userId &&
+                    (t.Type == TransactionType.PUNCHIN || t.Type == TransactionType.PUNCHOUT) &&
+                    t.CreatedDate.Date == dateTime.Date)
+                    .OrderBy(t => t.CreatedDate).ToListAsync();
+            if (transactions == null) return null;
+            return CreateDashboardByTransaction(transactions, userId).FirstOrDefault();
         }
     }
 }

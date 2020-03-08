@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -97,11 +98,20 @@ namespace TimeAttendance.Controllers
 
         [ActionName("dashboard")]
         [HttpGet]
-        public ResponseModel Dashboard([FromQuery] int id)
+        public async Task<ResponseModel> Dashboard([FromQuery] int id)
         {
             if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
-            var dashboards = transactionService.GetDashboard(id);
+            var dashboards = await transactionService.GetDashboards(id);
             return Response(200, new ResponseData() { data = dashboards });
+        }
+
+        [ActionName("historytime")]
+        [HttpGet]
+        public async Task<ResponseModel> HistoryTime([FromQuery] int id)
+        {
+            if (!ModelState.IsValid) return Response(400, null, INVALID_PARAMETER);
+            var dashboard = await transactionService.GetDashboard(id, DateTime.Now.Date);
+            return Response(200, new ResponseData() { data = dashboard });
         }
 
     }
